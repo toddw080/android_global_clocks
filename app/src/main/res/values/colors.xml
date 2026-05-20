@@ -1,6 +1,13 @@
 <resources>
-    <color name="widget_background">#CC1C1B1F</color>
-    <color name="widget_text">#FFFFFFFF</color>
-    <color name="widget_text_secondary">#B3FFFFFF</color>
+    <!-- Light theme (also the pre-Android-12 light fallback). On Android 12+, values-v31
+         overrides the widget colors with the Material You dynamic palette. -->
+    <color name="widget_background">#E6FFFFFF</color>
+    <color name="widget_text">#FF1B1B1F</color>
+    <color name="widget_text_secondary">#99000000</color>
+
+    <!-- Config screen surfaces (light). -->
+    <color name="config_card">#FFFFFFFF</color>
+    <color name="config_stroke">#FFE0E0E0</color>
+
     <color name="ic_launcher_background">#3F51B5</color>
 </resources>

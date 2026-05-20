@@ -1,0 +1,5 @@
+<resources>
+    <!-- Dark counterpart of Theme.TimeWidget; the system selects this in dark mode so the
+         launcher and config screens follow the device theme like the widget does. -->
+    <style name="Theme.TimeWidget" parent="android:Theme.Material.NoActionBar" />
+</resources>

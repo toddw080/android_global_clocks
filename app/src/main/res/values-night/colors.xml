@@ -1,0 +1,9 @@
+<resources>
+    <!-- Dark theme (pre-Android-12 dark fallback; values-night-v31 overrides on Android 12+). -->
+    <color name="widget_background">#CC1C1B1F</color>
+    <color name="widget_text">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#B3FFFFFF</color>
+
+    <color name="config_card">#FF2A2A2D</color>
+    <color name="config_stroke">#FF45454A</color>
+</resources>
