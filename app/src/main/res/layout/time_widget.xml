@@ -5,15 +5,16 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
-    <!-- Up to MAX_ZONES rows; unused rows are hidden by the provider. -->
+    <!-- Each visible row gets equal weight, so the configured clocks always share the
+         widget's height instead of overflowing it. Unused rows are hidden by the provider. -->
 
     <LinearLayout
         android:id="@+id/row_0"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="2dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -28,6 +29,15 @@
             android:textColor="@color/widget_text_secondary"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/badge_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
         <TextClock
             android:id="@+id/clock_0"
             android:layout_width="wrap_content"
@@ -41,8 +51,8 @@
     <LinearLayout
         android:id="@+id/row_1"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="2dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -57,6 +67,15 @@
             android:textColor="@color/widget_text_secondary"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/badge_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
         <TextClock
             android:id="@+id/clock_1"
             android:layout_width="wrap_content"
@@ -70,8 +89,8 @@
     <LinearLayout
         android:id="@+id/row_2"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="2dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -86,6 +105,15 @@
             android:textColor="@color/widget_text_secondary"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/badge_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
         <TextClock
             android:id="@+id/clock_2"
             android:layout_width="wrap_content"
@@ -99,7 +127,8 @@
     <LinearLayout
         android:id="@+id/row_3"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -113,6 +142,15 @@
             android:maxLines="1"
             android:textColor="@color/widget_text_secondary"
             android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/badge_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
 
         <TextClock
             android:id="@+id/clock_3"
@@ -128,9 +166,9 @@
     <TextView
         android:id="@+id/empty_hint"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:gravity="center"
-        android:padding="8dp"
         android:text="@string/widget_tap_to_setup"
         android:textColor="@color/widget_text"
         android:textSize="14sp"
