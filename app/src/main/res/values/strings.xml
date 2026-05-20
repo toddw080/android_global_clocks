@@ -13,8 +13,11 @@
     <string name="config_add_clock">+ Add a clock</string>
     <string name="config_save">Save</string>
     <string name="config_remove">✕</string>
+    <string name="config_cancel">Cancel</string>
     <string name="config_need_one">Add at least one clock.</string>
     <string name="config_search_hint">Search a city…</string>
+    <string name="config_tap_to_choose">Tap to choose a city</string>
+    <string name="config_choose_city">Choose a city</string>
     <string name="config_pick_city">Pick a city from the list for each clock.</string>
 
     <!-- Hour formats -->
