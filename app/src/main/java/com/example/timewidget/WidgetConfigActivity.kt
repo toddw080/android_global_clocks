@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Spinner
@@ -27,11 +28,19 @@ class WidgetConfigActivity : Activity() {
     /** Cities in picker order, paired with their offset-prefixed display strings. */
     private val pickerEntries = Cities.pickerEntries()
     private val cityDisplays = pickerEntries.map { it.second }
+    private val displayToCity = pickerEntries.associate { (city, display) -> display to city }
 
     /** Live handles to each on-screen zone row. */
     private val rows = ArrayList<ZoneRow>()
 
-    private class ZoneRow(val view: View, val citySpinner: Spinner, val formatSpinner: Spinner)
+    private class ZoneRow(
+        val view: View,
+        val cityInput: AutoCompleteTextView,
+        val formatSpinner: Spinner
+    ) {
+        /** The city chosen from the suggestion list (the source of truth for this row). */
+        var selectedCity: City? = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,11 +89,25 @@ class WidgetConfigActivity : Activity() {
         if (rows.size >= WidgetPrefs.MAX_ZONES) return
 
         val rowView = layoutInflater.inflate(R.layout.config_zone_row, zonesContainer, false)
-        val citySpinner = rowView.findViewById<Spinner>(R.id.city_spinner)
+        val cityInput = rowView.findViewById<AutoCompleteTextView>(R.id.city_input)
         val formatSpinner = rowView.findViewById<Spinner>(R.id.format_spinner)
         val removeButton = rowView.findViewById<Button>(R.id.remove_button)
 
-        citySpinner.adapter = simpleAdapter(cityDisplays)
+        val row = ZoneRow(rowView, cityInput, formatSpinner)
+
+        // Type to search by city name, or tap an empty field to browse the full
+        // offset-sorted list. The chosen suggestion is the source of truth.
+        cityInput.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, cityDisplays)
+        )
+        cityInput.setOnItemClickListener { parent, _, position, _ ->
+            row.selectedCity = displayToCity[parent.getItemAtPosition(position) as String]
+        }
+        cityInput.setOnClickListener { if (cityInput.text.isEmpty()) cityInput.showDropDown() }
+        cityInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus && cityInput.text.isEmpty()) cityInput.showDropDown()
+        }
+
         formatSpinner.adapter = simpleAdapter(
             listOf(
                 getString(R.string.format_default),
@@ -94,10 +117,13 @@ class WidgetConfigActivity : Activity() {
         )
 
         if (preset != null) {
-            val cityIndex = pickerEntries.indexOfFirst {
+            val display = pickerEntries.firstOrNull {
                 it.first.label == preset.label && it.first.zoneId == preset.zoneId
+            }?.second
+            if (display != null) {
+                cityInput.setText(display, false) // false = don't re-trigger filtering
+                row.selectedCity = displayToCity[display]
             }
-            if (cityIndex >= 0) citySpinner.setSelection(cityIndex)
             formatSpinner.setSelection(
                 when (preset.format) {
                     HourFormat.DEFAULT -> 0
@@ -107,7 +133,6 @@ class WidgetConfigActivity : Activity() {
             )
         }
 
-        val row = ZoneRow(rowView, citySpinner, formatSpinner)
         removeButton.setOnClickListener { removeZoneRow(row) }
 
         rows.add(row)
@@ -130,18 +155,24 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun save() {
-        val zones = rows.map { row ->
-            val city = pickerEntries[row.citySpinner.selectedItemPosition].first
+        if (rows.isEmpty()) {
+            Toast.makeText(this, R.string.config_need_one, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val zones = ArrayList<ZoneEntry>(rows.size)
+        for (row in rows) {
+            val city = row.selectedCity ?: resolveCity(row.cityInput.text.toString())
+            if (city == null) {
+                Toast.makeText(this, R.string.config_pick_city, Toast.LENGTH_SHORT).show()
+                row.cityInput.requestFocus()
+                return
+            }
             val format = when (row.formatSpinner.selectedItemPosition) {
                 1 -> HourFormat.H12
                 2 -> HourFormat.H24
                 else -> HourFormat.DEFAULT
             }
-            ZoneEntry(city.label, city.zoneId, format)
-        }
-        if (zones.isEmpty()) {
-            Toast.makeText(this, R.string.config_need_one, Toast.LENGTH_SHORT).show()
-            return
+            zones.add(ZoneEntry(city.label, city.zoneId, format))
         }
 
         val config = WidgetConfig(zones, globalIs24h = globalFormatSpinner.selectedItemPosition == 1)
@@ -151,6 +182,14 @@ class WidgetConfigActivity : Activity() {
 
         setResult(RESULT_OK, resultIntent())
         finish()
+    }
+
+    /** Map free-typed text back to a city: exact display match, else case-insensitive name. */
+    private fun resolveCity(text: String): City? {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return null
+        displayToCity[trimmed]?.let { return it }
+        return pickerEntries.firstOrNull { it.first.label.equals(trimmed, ignoreCase = true) }?.first
     }
 
     private fun resultIntent() =

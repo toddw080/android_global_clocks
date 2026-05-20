@@ -14,6 +14,8 @@
     <string name="config_save">Save</string>
     <string name="config_remove">✕</string>
     <string name="config_need_one">Add at least one clock.</string>
+    <string name="config_search_hint">Search a city…</string>
+    <string name="config_pick_city">Pick a city from the list for each clock.</string>
 
     <!-- Hour formats -->
     <string name="format_default">Use default</string>
