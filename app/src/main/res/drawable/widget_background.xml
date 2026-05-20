@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- White rounded base; the provider tints this layer (color filter + alpha) to apply the
+     chosen background color/opacity, or the themed color for "System". -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/widget_background" />
+    <solid android:color="#FFFFFFFF" />
     <corners android:radius="16dp" />
 </shape>

@@ -7,7 +7,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
@@ -64,6 +66,18 @@ class TimeWidgetProvider : AppWidgetProvider() {
         private const val PATTERN_12H = "h:mm a"
         private const val PATTERN_24H = "HH:mm"
 
+        // Fixed text colors for explicit Light/Dark (and AUTO over a custom background).
+        private val LIGHT_PRIMARY = 0xFFFFFFFF.toInt()
+        private val LIGHT_SECONDARY = 0xB3FFFFFF.toInt()
+        private val DARK_PRIMARY = 0xFF1B1B1F.toInt()
+        private val DARK_SECONDARY = 0x99000000.toInt()
+
+        /** Perceived-luminance test so AUTO text contrasts with a custom background. */
+        private fun isDark(color: Int): Boolean {
+            val luminance = 0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)
+            return luminance < 140
+        }
+
         /** Re-render every placed instance (used by alarm / boot / time-change). */
         fun renderAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
@@ -81,7 +95,39 @@ class TimeWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.time_widget)
             val config = WidgetPrefs.load(context, appWidgetId)
             val zones = config?.zones.orEmpty()
+            val appearance = config?.appearance ?: Appearance.DEFAULT
             val localDate = LocalDate.now()
+
+            // --- Appearance: background tint + opacity ---
+            val bgArgb = appearance.backgroundColor ?: context.getColor(R.color.widget_background)
+            val baseAlpha = if (appearance.backgroundColor == null) Color.alpha(bgArgb) else 255
+            val alpha = (baseAlpha * appearance.opacityPercent / 100).coerceIn(0, 255)
+            views.setInt(R.id.widget_bg, "setColorFilter", bgArgb or (0xFF shl 24)) // opaque RGB
+            views.setInt(R.id.widget_bg, "setImageAlpha", alpha)
+
+            // --- Appearance: resolved text colors + size scale ---
+            val primary: Int
+            val secondary: Int
+            when (appearance.textColorMode) {
+                TextColorMode.LIGHT -> { primary = LIGHT_PRIMARY; secondary = LIGHT_SECONDARY }
+                TextColorMode.DARK -> { primary = DARK_PRIMARY; secondary = DARK_SECONDARY }
+                TextColorMode.AUTO -> when {
+                    appearance.backgroundColor == null -> {
+                        primary = context.getColor(R.color.widget_text)
+                        secondary = context.getColor(R.color.widget_text_secondary)
+                    }
+                    isDark(appearance.backgroundColor) -> { primary = LIGHT_PRIMARY; secondary = LIGHT_SECONDARY }
+                    else -> { primary = DARK_PRIMARY; secondary = DARK_SECONDARY }
+                }
+            }
+            val scale = when (appearance.textSize) {
+                TextSize.SMALL -> 0.8f
+                TextSize.MEDIUM -> 1.0f
+                TextSize.LARGE -> 1.25f
+            }
+
+            views.setTextColor(R.id.empty_hint, primary)
+            views.setTextViewTextSize(R.id.empty_hint, TypedValue.COMPLEX_UNIT_SP, 14f * scale)
 
             if (zones.isEmpty()) {
                 ROW_IDS.forEach { views.setViewVisibility(it, View.GONE) }
@@ -104,6 +150,14 @@ class TimeWidgetProvider : AppWidgetProvider() {
                         views.setString(CLOCK_IDS[i], "setTimeZone", zone.zoneId)
                         views.setCharSequence(CLOCK_IDS[i], "setFormat12Hour", pattern)
                         views.setCharSequence(CLOCK_IDS[i], "setFormat24Hour", pattern)
+
+                        // Appearance: per-row text color + size.
+                        views.setTextColor(LABEL_IDS[i], secondary)
+                        views.setTextColor(CLOCK_IDS[i], primary)
+                        views.setTextColor(BADGE_IDS[i], secondary)
+                        views.setTextViewTextSize(LABEL_IDS[i], TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+                        views.setTextViewTextSize(CLOCK_IDS[i], TypedValue.COMPLEX_UNIT_SP, 20f * scale)
+                        views.setTextViewTextSize(BADGE_IDS[i], TypedValue.COMPLEX_UNIT_SP, 11f * scale)
 
                         // Day badge: how many calendar days this zone is ahead/behind "today".
                         val offset = dayOffset(zone.zoneId, localDate)

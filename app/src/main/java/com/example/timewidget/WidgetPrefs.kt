@@ -19,8 +19,34 @@ data class ZoneEntry(
     val cityName: String = label
 )
 
-/** A widget instance's full configuration: its ordered rows plus the global 12/24 default. */
-data class WidgetConfig(val zones: List<ZoneEntry>, val globalIs24h: Boolean)
+/** Text color strategy. AUTO picks light/dark for contrast (or follows the theme on System bg). */
+enum class TextColorMode { AUTO, LIGHT, DARK }
+
+/** Relative text size for the widget rows. */
+enum class TextSize { SMALL, MEDIUM, LARGE }
+
+/**
+ * Per-widget visual customization. [backgroundColor] null = follow the system theme (light/dark
+ * + Material You); otherwise a custom color. [opacityPercent] (0..100) scales the background's
+ * opacity. Text color/size are applied to every row.
+ */
+data class Appearance(
+    val backgroundColor: Int? = null,
+    val opacityPercent: Int = 100,
+    val textColorMode: TextColorMode = TextColorMode.AUTO,
+    val textSize: TextSize = TextSize.MEDIUM
+) {
+    companion object {
+        val DEFAULT = Appearance()
+    }
+}
+
+/** A widget instance's full configuration: its ordered rows, the global 12/24 default, and look. */
+data class WidgetConfig(
+    val zones: List<ZoneEntry>,
+    val globalIs24h: Boolean,
+    val appearance: Appearance = Appearance.DEFAULT
+)
 
 /**
  * Per-widget configuration persisted in SharedPreferences as JSON, keyed by appWidgetId.
@@ -47,9 +73,16 @@ object WidgetPrefs {
                     .put("format", z.format.name)
             )
         }
+        val a = config.appearance
+        val appearance = JSONObject()
+            .put("opacityPercent", a.opacityPercent)
+            .put("textColorMode", a.textColorMode.name)
+            .put("textSize", a.textSize.name)
+        a.backgroundColor?.let { appearance.put("backgroundColor", it) }
         val obj = JSONObject()
             .put("zones", zones)
             .put("globalIs24h", config.globalIs24h)
+            .put("appearance", appearance)
         prefs(context).edit().putString(key(appWidgetId), obj.toString()).apply()
     }
 
@@ -73,7 +106,17 @@ object WidgetPrefs {
                     )
                 )
             }
-            WidgetConfig(zones, obj.optBoolean("globalIs24h", false))
+            val appearance = obj.optJSONObject("appearance")?.let { a ->
+                Appearance(
+                    backgroundColor = if (a.has("backgroundColor")) a.getInt("backgroundColor") else null,
+                    opacityPercent = a.optInt("opacityPercent", 100),
+                    textColorMode = runCatching { TextColorMode.valueOf(a.optString("textColorMode", "AUTO")) }
+                        .getOrDefault(TextColorMode.AUTO),
+                    textSize = runCatching { TextSize.valueOf(a.optString("textSize", "MEDIUM")) }
+                        .getOrDefault(TextSize.MEDIUM)
+                )
+            } ?: Appearance.DEFAULT
+            WidgetConfig(zones, obj.optBoolean("globalIs24h", false), appearance)
         } catch (e: Exception) {
             null
         }

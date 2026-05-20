@@ -14,6 +14,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -33,6 +34,29 @@ class WidgetConfigActivity : Activity() {
     private lateinit var zonesContainer: LinearLayout
     private lateinit var globalFormatSpinner: Spinner
     private lateinit var addZoneButton: Button
+
+    // Appearance controls.
+    private lateinit var bgColorSpinner: Spinner
+    private lateinit var opacitySeek: SeekBar
+    private lateinit var opacityValue: TextView
+    private lateinit var textColorSpinner: Spinner
+    private lateinit var textSizeSpinner: Spinner
+
+    private class BgChoice(val name: String, val color: Int?)
+
+    /** Background swatch palette; index 0 = System (follow theme). */
+    private val bgChoices = listOf(
+        BgChoice("System", null),
+        BgChoice("Black", 0xFF000000.toInt()),
+        BgChoice("White", 0xFFFFFFFF.toInt()),
+        BgChoice("Blue", 0xFF1565C0.toInt()),
+        BgChoice("Teal", 0xFF00796B.toInt()),
+        BgChoice("Green", 0xFF2E7D32.toInt()),
+        BgChoice("Red", 0xFFC62828.toInt()),
+        BgChoice("Purple", 0xFF6A1B9A.toInt()),
+        BgChoice("Orange", 0xFFEF6C00.toInt()),
+        BgChoice("Slate", 0xFF37474F.toInt())
+    )
 
     /** A choosable entry in the city dialog: what to store plus how to display it. */
     private class PickItem(val label: String, val zoneId: String, val display: String) {
@@ -89,7 +113,37 @@ class WidgetConfigActivity : Activity() {
         findViewById<Button>(R.id.save_button).setOnClickListener { save() }
         findViewById<Button>(R.id.cancel_button).setOnClickListener { cancelAndFinish() }
 
+        setupAppearanceControls()
         restoreOrSeed()
+    }
+
+    private fun setupAppearanceControls() {
+        bgColorSpinner = findViewById(R.id.bg_color_spinner)
+        opacitySeek = findViewById(R.id.opacity_seek)
+        opacityValue = findViewById(R.id.opacity_value)
+        textColorSpinner = findViewById(R.id.text_color_spinner)
+        textSizeSpinner = findViewById(R.id.text_size_spinner)
+
+        bgColorSpinner.adapter = simpleAdapter(bgChoices.map { it.name })
+        textColorSpinner.adapter = simpleAdapter(listOf("Auto", "Light", "Dark"))
+        textSizeSpinner.adapter = simpleAdapter(listOf("Small", "Medium", "Large"))
+
+        opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                opacityValue.text = "$progress%"
+            }
+
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+    }
+
+    private fun applyAppearanceToUi(a: Appearance) {
+        bgColorSpinner.setSelection(bgChoices.indexOfFirst { it.color == a.backgroundColor }.coerceAtLeast(0))
+        opacitySeek.progress = a.opacityPercent
+        opacityValue.text = "${a.opacityPercent}%"
+        textColorSpinner.setSelection(a.textColorMode.ordinal)
+        textSizeSpinner.setSelection(a.textSize.ordinal)
     }
 
     /** Pre-populate from an existing config, or seed sensible defaults for a new widget. */
@@ -103,6 +157,7 @@ class WidgetConfigActivity : Activity() {
             addZoneRow(ZoneEntry("New York", "America/New_York", HourFormat.DEFAULT))
             addZoneRow(ZoneEntry("London", "Europe/London", HourFormat.DEFAULT))
         }
+        applyAppearanceToUi(existing?.appearance ?: Appearance.DEFAULT)
     }
 
     private fun addZoneRow(preset: ZoneEntry?) {
@@ -264,7 +319,17 @@ class WidgetConfigActivity : Activity() {
             zones.add(ZoneEntry(label = displayLabel, zoneId = city.zoneId, format = format, cityName = cityName))
         }
 
-        val config = WidgetConfig(zones, globalIs24h = globalFormatSpinner.selectedItemPosition == 1)
+        val appearance = Appearance(
+            backgroundColor = bgChoices[bgColorSpinner.selectedItemPosition].color,
+            opacityPercent = opacitySeek.progress,
+            textColorMode = TextColorMode.values()[textColorSpinner.selectedItemPosition],
+            textSize = TextSize.values()[textSizeSpinner.selectedItemPosition]
+        )
+        val config = WidgetConfig(
+            zones,
+            globalIs24h = globalFormatSpinner.selectedItemPosition == 1,
+            appearance = appearance
+        )
         WidgetPrefs.save(this, appWidgetId, config)
 
         TimeWidgetProvider.renderWidget(this, AppWidgetManager.getInstance(this), appWidgetId)

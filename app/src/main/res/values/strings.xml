@@ -18,6 +18,13 @@
     <string name="config_search_hint">Search a city…</string>
     <string name="config_tap_to_choose">Tap to choose a city</string>
     <string name="config_label_hint">Label (shown on widget)</string>
+
+    <!-- Appearance section -->
+    <string name="config_appearance">Appearance</string>
+    <string name="config_background">Background</string>
+    <string name="config_opacity">Opacity</string>
+    <string name="config_text_color">Text color</string>
+    <string name="config_text_size">Text size</string>
     <string name="config_choose_city">Choose a city</string>
     <string name="config_no_matches">No matching cities</string>
     <string name="config_pick_city">Pick a city from the list for each clock.</string>
