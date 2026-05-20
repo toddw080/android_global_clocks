@@ -1,0 +1,6 @@
+<resources>
+    <color name="widget_background">#CC1C1B1F</color>
+    <color name="widget_text">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#B3FFFFFF</color>
+    <color name="ic_launcher_background">#3F51B5</color>
+</resources>
