@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.appwidget.AppWidgetManager
 import android.os.Bundle
+import android.os.Handler
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -22,8 +23,8 @@ import android.widget.Toast
  * added (via android:configure) and when an existing widget is tapped. Lets the user pick
  * 1..MAX_ZONES locations, each with its own 12/24/Default format, plus a global default.
  *
- * Each city is chosen via a search dialog (search box + scrollable list) so the keyboard
- * behaves natively, rather than an inline auto-complete dropdown.
+ * Each city is chosen via a search dialog backed by [CityRepository] (the full ~69k-city
+ * dataset), with a short curated "popular" list shown before the user types.
  */
 class WidgetConfigActivity : Activity() {
 
@@ -33,11 +34,15 @@ class WidgetConfigActivity : Activity() {
     private lateinit var globalFormatSpinner: Spinner
     private lateinit var addZoneButton: Button
 
-    /** Cities in picker order, paired with their offset-prefixed display strings. */
-    private val pickerEntries = Cities.pickerEntries()
-    private val cityDisplays = pickerEntries.map { it.second }
-    private val displayToCity = pickerEntries.associate { (city, display) -> display to city }
-    private val cityToDisplay = pickerEntries.associate { (city, display) -> city to display }
+    /** A choosable entry in the city dialog: what to store plus how to display it. */
+    private class PickItem(val label: String, val zoneId: String, val display: String) {
+        override fun toString() = display
+    }
+
+    /** Curated, well-known cities shown before the user types anything. */
+    private val popularItems: List<PickItem> by lazy {
+        Cities.pickerEntries().map { (city, display) -> PickItem(city.label, city.zoneId, display) }
+    }
 
     /** Live handles to each on-screen zone row. */
     private val rows = ArrayList<ZoneRow>()
@@ -66,6 +71,9 @@ class WidgetConfigActivity : Activity() {
             finish()
             return
         }
+
+        // Warm the city dataset on a background thread so search is ready when the user types.
+        Thread { CityRepository.ensureLoaded(applicationContext) }.start()
 
         setContentView(R.layout.widget_config)
         zonesContainer = findViewById(R.id.zones_container)
@@ -106,7 +114,6 @@ class WidgetConfigActivity : Activity() {
 
         val row = ZoneRow(rowView, cityField, formatSpinner)
 
-        // Tapping the field opens the search dialog.
         cityField.setOnClickListener { openCityDialog(row) }
 
         formatSpinner.adapter = simpleAdapter(
@@ -118,9 +125,7 @@ class WidgetConfigActivity : Activity() {
         )
 
         if (preset != null) {
-            pickerEntries.firstOrNull {
-                it.first.label == preset.label && it.first.zoneId == preset.zoneId
-            }?.first?.let { setCityOnRow(row, it) }
+            setCity(row, preset.label, preset.zoneId)
             formatSpinner.setSelection(
                 when (preset.format) {
                     HourFormat.DEFAULT -> 0
@@ -144,23 +149,37 @@ class WidgetConfigActivity : Activity() {
         refreshControls()
     }
 
-    private fun setCityOnRow(row: ZoneRow, city: City) {
-        row.selectedCity = city
-        row.cityField.text = cityToDisplay[city] ?: city.label
+    private fun setCity(row: ZoneRow, label: String, zoneId: String) {
+        row.selectedCity = City(label, zoneId)
+        row.cityField.text = "(${Cities.offsetLabel(zoneId)})  $label"
+    }
+
+    /** "Derby, Connecticut, United States  —  UTC-05:00" (admin/country omitted when blank). */
+    private fun CityRecord.toPickItem(): PickItem {
+        val place = buildString {
+            append(name)
+            if (admin.isNotBlank()) append(", ").append(admin)
+            val country = CityRepository.countryName(countryCode)
+            if (country.isNotBlank()) append(", ").append(country)
+        }
+        return PickItem(name, zoneId, "$place  —  ${Cities.offsetLabel(zoneId)}")
     }
 
     /**
-     * Open a standard search dialog: a search box on top (keyboard docks/auto-shows like any
-     * other app) and a scrollable list below that filters as you type. Tapping a city selects
-     * it and closes the dialog. Cancel / back / tap-outside dismiss without changing the row.
+     * Standard search dialog: a search box on top (keyboard docks/auto-shows like any other
+     * app) and a scrollable list below. Empty query shows the curated "popular" list; typing
+     * searches the full dataset (debounced, capped). Tapping a city selects it and closes.
      */
     private fun openCityDialog(row: ZoneRow) {
         val view = layoutInflater.inflate(R.layout.dialog_city_search, null)
         val searchBox = view.findViewById<EditText>(R.id.search_box)
         val cityList = view.findViewById<ListView>(R.id.city_list)
+        cityList.emptyView = view.findViewById(R.id.city_empty)
 
-        val listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, cityDisplays)
-        cityList.adapter = listAdapter
+        val adapter = ArrayAdapter<PickItem>(
+            this, android.R.layout.simple_list_item_1, ArrayList(popularItems)
+        )
+        cityList.adapter = adapter
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.config_choose_city)
@@ -168,18 +187,29 @@ class WidgetConfigActivity : Activity() {
             .setNegativeButton(R.string.config_cancel, null)
             .create()
 
+        val handler = Handler(mainLooper)
         searchBox.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                listAdapter.filter.filter(s)
-            }
-
+            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun afterTextChanged(s: Editable?) {}
+            override fun onTextChanged(s: CharSequence?, st: Int, before: Int, count: Int) {
+                val query = s?.toString().orEmpty()
+                handler.removeCallbacksAndMessages(null)
+                handler.postDelayed({
+                    val items = if (query.isBlank()) {
+                        popularItems
+                    } else {
+                        CityRepository.search(query).map { it.toPickItem() }
+                    }
+                    adapter.clear()
+                    adapter.addAll(items)
+                    adapter.notifyDataSetChanged()
+                }, SEARCH_DEBOUNCE_MS)
+            }
         })
 
         cityList.setOnItemClickListener { _, _, position, _ ->
-            val display = listAdapter.getItem(position) ?: return@setOnItemClickListener
-            displayToCity[display]?.let { setCityOnRow(row, it) }
+            val item = adapter.getItem(position) ?: return@setOnItemClickListener
+            setCity(row, item.label, item.zoneId)
             dialog.dismiss()
         }
 
@@ -236,4 +266,8 @@ class WidgetConfigActivity : Activity() {
         ArrayAdapter(this, android.R.layout.simple_spinner_item, items).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 140L
+    }
 }

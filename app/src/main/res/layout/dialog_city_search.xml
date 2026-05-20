@@ -16,10 +16,24 @@
         android:maxLines="1"
         android:singleLine="true" />
 
-    <ListView
-        android:id="@+id/city_list"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="320dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp">
+
+        <ListView
+            android:id="@+id/city_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/city_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/config_no_matches"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>
