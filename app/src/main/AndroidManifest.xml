@@ -22,6 +22,7 @@
 
         <activity
             android:name=".WidgetConfigActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden"
             android:exported="true"
             android:theme="@style/Theme.TimeWidget"
             android:windowSoftInputMode="adjustResize">

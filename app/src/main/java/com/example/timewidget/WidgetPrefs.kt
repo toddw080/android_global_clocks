@@ -1,6 +1,7 @@
 package com.example.timewidget
 
 import android.content.Context
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -83,7 +84,7 @@ object WidgetPrefs {
             .put("zones", zones)
             .put("globalIs24h", config.globalIs24h)
             .put("appearance", appearance)
-        prefs(context).edit().putString(key(appWidgetId), obj.toString()).apply()
+        prefs(context).edit { putString(key(appWidgetId), obj.toString()) }
     }
 
     /** Returns the saved config, or null if this widget hasn't been configured yet. */
@@ -123,6 +124,6 @@ object WidgetPrefs {
     }
 
     fun delete(context: Context, appWidgetId: Int) {
-        prefs(context).edit().remove(key(appWidgetId)).apply()
+        prefs(context).edit { remove(key(appWidgetId)) }
     }
 }

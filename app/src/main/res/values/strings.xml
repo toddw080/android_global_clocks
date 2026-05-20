@@ -25,6 +25,9 @@
     <string name="config_opacity">Opacity</string>
     <string name="config_text_color">Text color</string>
     <string name="config_text_size">Text size</string>
+    <string name="config_opacity_value">%1$d%%</string>
+    <!-- Zone field: (offset)  City, e.g. "(UTC-04:00)  New York" -->
+    <string name="config_zone_display">(%1$s)  %2$s</string>
     <string name="config_choose_city">Choose a city</string>
     <string name="config_no_matches">No matching cities</string>
     <string name="config_pick_city">Pick a city from the list for each clock.</string>

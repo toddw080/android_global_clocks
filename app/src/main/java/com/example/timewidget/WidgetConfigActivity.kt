@@ -130,7 +130,7 @@ class WidgetConfigActivity : Activity() {
 
         opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                opacityValue.text = "$progress%"
+                opacityValue.text = getString(R.string.config_opacity_value, progress)
             }
 
             override fun onStartTrackingTouch(sb: SeekBar?) {}
@@ -141,7 +141,7 @@ class WidgetConfigActivity : Activity() {
     private fun applyAppearanceToUi(a: Appearance) {
         bgColorSpinner.setSelection(bgChoices.indexOfFirst { it.color == a.backgroundColor }.coerceAtLeast(0))
         opacitySeek.progress = a.opacityPercent
-        opacityValue.text = "${a.opacityPercent}%"
+        opacityValue.text = getString(R.string.config_opacity_value, a.opacityPercent)
         textColorSpinner.setSelection(a.textColorMode.ordinal)
         textSizeSpinner.setSelection(a.textSize.ordinal)
     }
@@ -210,7 +210,7 @@ class WidgetConfigActivity : Activity() {
     /** Set the row's zone (city name + offset shown in the zone field) without touching the label. */
     private fun setZone(row: ZoneRow, cityName: String, zoneId: String) {
         row.selectedCity = City(cityName, zoneId)
-        row.zoneField.text = "(${Cities.offsetLabel(zoneId)})  $cityName"
+        row.zoneField.text = getString(R.string.config_zone_display, Cities.offsetLabel(zoneId), cityName)
     }
 
     /**

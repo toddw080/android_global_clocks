@@ -8,8 +8,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.net.Uri
 import android.util.TypedValue
+import androidx.core.net.toUri
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
@@ -190,9 +190,18 @@ class TimeWidgetProvider : AppWidgetProvider() {
          */
         private fun scheduleNextMidnight(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+            val ids = placedIds(context, manager)
+            if (ids.isEmpty()) {
+                // No widgets placed — don't keep a daily alarm armed for nothing.
+                alarmManager.cancel(alarmPendingIntent(context))
+                return
+            }
+
             val zones = HashSet<ZoneId>()
             zones.add(ZoneId.systemDefault())
-            for (id in placedIds(context, manager)) {
+            for (id in ids) {
                 WidgetPrefs.load(context, id)?.zones?.forEach { z ->
                     runCatching { ZoneId.of(z.zoneId) }.getOrNull()?.let { zones.add(it) }
                 }
@@ -205,7 +214,6 @@ class TimeWidgetProvider : AppWidgetProvider() {
             }
             if (next == Long.MAX_VALUE) return
 
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             // Inexact alarm (no special permission); a few minutes' slack at midnight is fine.
             alarmManager.set(AlarmManager.RTC, next + 1_000L, alarmPendingIntent(context))
         }
@@ -226,7 +234,7 @@ class TimeWidgetProvider : AppWidgetProvider() {
             val intent = Intent(context, WidgetConfigActivity::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_CONFIGURE
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                data = Uri.parse("timewidget://configure/$appWidgetId")
+                data = "timewidget://configure/$appWidgetId".toUri()
             }
             return PendingIntent.getActivity(
                 context,
