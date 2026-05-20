@@ -13,6 +13,7 @@
     <string name="config_add_clock">+ Add a clock</string>
     <string name="config_save">Save</string>
     <string name="config_remove">✕</string>
+    <string name="config_remove_desc">Remove this clock</string>
     <string name="config_cancel">Cancel</string>
     <string name="config_need_one">Add at least one clock.</string>
     <string name="config_search_hint">Search a city…</string>
