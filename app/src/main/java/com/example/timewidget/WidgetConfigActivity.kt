@@ -49,10 +49,11 @@ class WidgetConfigActivity : Activity() {
 
     private class ZoneRow(
         val view: View,
-        val cityField: TextView,
+        val labelInput: EditText,
+        val zoneField: TextView,
         val formatSpinner: Spinner
     ) {
-        /** The city chosen for this row — the source of truth. */
+        /** The city chosen for this row (name + zone) — drives the time. */
         var selectedCity: City? = null
     }
 
@@ -108,13 +109,14 @@ class WidgetConfigActivity : Activity() {
         if (rows.size >= WidgetPrefs.MAX_ZONES) return
 
         val rowView = layoutInflater.inflate(R.layout.config_zone_row, zonesContainer, false)
-        val cityField = rowView.findViewById<TextView>(R.id.city_field)
+        val labelInput = rowView.findViewById<EditText>(R.id.label_input)
+        val zoneField = rowView.findViewById<TextView>(R.id.zone_field)
         val formatSpinner = rowView.findViewById<Spinner>(R.id.format_spinner)
         val removeButton = rowView.findViewById<Button>(R.id.remove_button)
 
-        val row = ZoneRow(rowView, cityField, formatSpinner)
+        val row = ZoneRow(rowView, labelInput, zoneField, formatSpinner)
 
-        cityField.setOnClickListener { openCityDialog(row) }
+        zoneField.setOnClickListener { openCityDialog(row) }
 
         formatSpinner.adapter = simpleAdapter(
             listOf(
@@ -125,7 +127,8 @@ class WidgetConfigActivity : Activity() {
         )
 
         if (preset != null) {
-            setCity(row, preset.label, preset.zoneId)
+            setZone(row, preset.cityName, preset.zoneId)
+            row.labelInput.setText(preset.label)
             formatSpinner.setSelection(
                 when (preset.format) {
                     HourFormat.DEFAULT -> 0
@@ -149,9 +152,23 @@ class WidgetConfigActivity : Activity() {
         refreshControls()
     }
 
-    private fun setCity(row: ZoneRow, label: String, zoneId: String) {
-        row.selectedCity = City(label, zoneId)
-        row.cityField.text = "(${Cities.offsetLabel(zoneId)})  $label"
+    /** Set the row's zone (city name + offset shown in the zone field) without touching the label. */
+    private fun setZone(row: ZoneRow, cityName: String, zoneId: String) {
+        row.selectedCity = City(cityName, zoneId)
+        row.zoneField.text = "(${Cities.offsetLabel(zoneId)})  $cityName"
+    }
+
+    /**
+     * From the picker: set the zone and default the label to the city name — but keep whatever
+     * the user already typed if it's a custom label (not just the previous city's name).
+     */
+    private fun applyPick(row: ZoneRow, cityName: String, zoneId: String) {
+        val previousCity = row.selectedCity?.label
+        val currentLabel = row.labelInput.text?.toString().orEmpty()
+        setZone(row, cityName, zoneId)
+        if (currentLabel.isBlank() || currentLabel == previousCity) {
+            row.labelInput.setText(cityName)
+        }
     }
 
     /** "Derby, Connecticut, United States  —  UTC-05:00" (admin/country omitted when blank). */
@@ -209,7 +226,7 @@ class WidgetConfigActivity : Activity() {
 
         cityList.setOnItemClickListener { _, _, position, _ ->
             val item = adapter.getItem(position) ?: return@setOnItemClickListener
-            setCity(row, item.label, item.zoneId)
+            applyPick(row, item.label, item.zoneId)
             dialog.dismiss()
         }
 
@@ -242,7 +259,9 @@ class WidgetConfigActivity : Activity() {
                 2 -> HourFormat.H24
                 else -> HourFormat.DEFAULT
             }
-            zones.add(ZoneEntry(city.label, city.zoneId, format))
+            val cityName = city.label
+            val displayLabel = row.labelInput.text?.toString()?.trim().orEmpty().ifEmpty { cityName }
+            zones.add(ZoneEntry(label = displayLabel, zoneId = city.zoneId, format = format, cityName = cityName))
         }
 
         val config = WidgetConfig(zones, globalIs24h = globalFormatSpinner.selectedItemPosition == 1)

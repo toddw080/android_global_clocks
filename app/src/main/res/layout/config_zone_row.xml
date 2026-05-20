@@ -14,21 +14,15 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/city_field"
+        <EditText
+            android:id="@+id/label_input"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?android:attr/editTextBackground"
-            android:clickable="true"
-            android:ellipsize="end"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:hint="@string/config_tap_to_choose"
-            android:maxLines="1"
-            android:minHeight="48dp"
-            android:paddingHorizontal="4dp"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:hint="@string/config_label_hint"
+            android:imeOptions="actionDone"
+            android:inputType="textCapWords"
+            android:maxLines="1" />
 
         <Button
             android:id="@+id/remove_button"
@@ -40,6 +34,22 @@
             android:text="@string/config_remove"
             android:textSize="16sp" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/zone_field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="?android:attr/editTextBackground"
+        android:clickable="true"
+        android:ellipsize="end"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:hint="@string/config_tap_to_choose"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="4dp"
+        android:textColor="?android:attr/textColorPrimary" />
 
     <Spinner
         android:id="@+id/format_spinner"

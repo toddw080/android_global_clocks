@@ -17,6 +17,7 @@
     <string name="config_need_one">Add at least one clock.</string>
     <string name="config_search_hint">Search a city…</string>
     <string name="config_tap_to_choose">Tap to choose a city</string>
+    <string name="config_label_hint">Label (shown on widget)</string>
     <string name="config_choose_city">Choose a city</string>
     <string name="config_no_matches">No matching cities</string>
     <string name="config_pick_city">Pick a city from the list for each clock.</string>

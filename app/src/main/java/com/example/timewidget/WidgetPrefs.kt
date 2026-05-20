@@ -7,8 +7,17 @@ import org.json.JSONObject
 /** How a single zone renders its time. DEFAULT defers to the widget's global setting. */
 enum class HourFormat { DEFAULT, H12, H24 }
 
-/** One configured clock row: a location label, the IANA zone it follows, and its format. */
-data class ZoneEntry(val label: String, val zoneId: String, val format: HourFormat)
+/**
+ * One configured clock row. [label] is what the widget shows (user-editable). [cityName] is the
+ * city that was picked (drives the time via [zoneId]); it defaults to [label] and is kept so the
+ * config screen can still show which city a row points at even after the label is customized.
+ */
+data class ZoneEntry(
+    val label: String,
+    val zoneId: String,
+    val format: HourFormat,
+    val cityName: String = label
+)
 
 /** A widget instance's full configuration: its ordered rows plus the global 12/24 default. */
 data class WidgetConfig(val zones: List<ZoneEntry>, val globalIs24h: Boolean)
@@ -33,6 +42,7 @@ object WidgetPrefs {
             zones.put(
                 JSONObject()
                     .put("label", z.label)
+                    .put("cityName", z.cityName)
                     .put("zoneId", z.zoneId)
                     .put("format", z.format.name)
             )
@@ -57,7 +67,9 @@ object WidgetPrefs {
                         label = o.getString("label"),
                         zoneId = o.getString("zoneId"),
                         format = runCatching { HourFormat.valueOf(o.optString("format", "DEFAULT")) }
-                            .getOrDefault(HourFormat.DEFAULT)
+                            .getOrDefault(HourFormat.DEFAULT),
+                        // Back-compat: older saves have no cityName -> fall back to the label.
+                        cityName = o.optString("cityName", o.getString("label"))
                     )
                 )
             }
