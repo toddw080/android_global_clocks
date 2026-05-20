@@ -1,5 +1,22 @@
 <resources>
     <string name="app_name">Time Widget</string>
-    <string name="widget_description">Shows the current time and date on your home screen.</string>
-    <string name="main_instructions">To add the clock, long-press your home screen, tap Widgets, then drag Time Widget onto the screen.</string>
+    <string name="widget_description">Shows the current time in your chosen cities on your home screen.</string>
+    <string name="main_instructions">To add a clock, long-press your home screen, tap Widgets, then drag Time Widget onto the screen. Tap a placed widget any time to change its locations.</string>
+
+    <!-- Widget -->
+    <string name="widget_tap_to_setup">Tap to choose locations</string>
+
+    <!-- Configuration screen -->
+    <string name="config_title">Set up clocks</string>
+    <string name="config_subtitle">Show the current time in up to 4 locations. Tap a placed widget to edit it later.</string>
+    <string name="config_default_format">Default format</string>
+    <string name="config_add_clock">+ Add a clock</string>
+    <string name="config_save">Save</string>
+    <string name="config_remove">✕</string>
+    <string name="config_need_one">Add at least one clock.</string>
+
+    <!-- Hour formats -->
+    <string name="format_default">Use default</string>
+    <string name="format_12h">12-hour</string>
+    <string name="format_24h">24-hour</string>
 </resources>
